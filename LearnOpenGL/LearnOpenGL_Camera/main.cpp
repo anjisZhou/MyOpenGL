@@ -11,8 +11,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-glm::mat4x4 LookAt(glm::vec3 pos, glm::vec3 center, glm::vec3 up);
-
+glm::mat4 calculate_lookAt_matrix(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp);
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -257,7 +256,7 @@ int main()
 
 		//手动旋转
 		glm::mat4 view;
-		view = LookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		view = calculate_lookAt_matrix(cameraPos, cameraPos + cameraFront, cameraUp);
 		int viewLoc = glGetUniformLocation(ourShader.ID, "view");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
@@ -385,15 +384,40 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		fov = 45.0f;
 }
 
-glm::mat4x4 LookAt(glm::vec3 pos, glm::vec3 center, glm::vec3 up)
+
+
+glm::mat4 calculate_lookAt_matrix(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp)
 {
-	glm::vec3 carmeraDir = glm::normalize(pos - center);
-	glm::vec3 carmeraRight = glm::normalize(glm::cross(up, carmeraDir));
-	glm::vec3 carmeraUp = glm::normalize(glm::cross(carmeraDir, carmeraRight));
+	// 1. Position = known
+	// 2. Calculate cameraDirection
+	glm::vec3 zaxis = glm::normalize(position - target);
+	// 3. Get positive right axis vector
+	glm::vec3 xaxis = glm::normalize(glm::cross(glm::normalize(worldUp), zaxis));
+	// 4. Calculate camera up vector
+	glm::vec3 yaxis = glm::cross(zaxis, xaxis);
 
-	glm::mat4x4 carmera(glm::vec4(carmeraRight, 0), glm::vec4(carmeraUp, 0), glm::vec4(carmeraDir, 0), glm::vec4(0, 0, 0, 1));
-	glm::mat4x4 dir(glm::vec4(1,0,0, -pos.x), glm::vec4(0,1,0,-pos.y), glm::vec4(0,0, 1,-pos.z), glm::vec4(0, 0, 0, 1));
+	// Create translation and rotation matrix
+	// In glm we access elements as mat[col][row] due to column-major layout
+	glm::mat4 translation; // Identity matrix by default
+	translation[3][0] = -position.x; // Third column, first row
+	translation[3][1] = -position.y;
+	translation[3][2] = -position.z;
 
-	return carmera*dir;
+	//由于mat4下面这个构造函数是使用的列，所以不能这样传值。
+	//glm::mat4 translation(glm::vec4(1, 0, 0, -position.x), glm::vec4(0, 1, 0, -position.y), glm::vec4(0, 0, 1, -position.z), glm::vec4(0, 0, 0, 1));
+	//glm::mat4 rotation(glm::vec4(xaxis, 0), glm::vec4(yaxis, 0), glm::vec4(zaxis, 0), glm::vec4(0, 0, 0, 1));
+
+	glm::mat4 rotation;
+	rotation[0][0] = xaxis.x; // First column, first row
+	rotation[1][0] = xaxis.y;
+	rotation[2][0] = xaxis.z;
+	rotation[0][1] = yaxis.x; // First column, second row
+	rotation[1][1] = yaxis.y;
+	rotation[2][1] = yaxis.z;
+	rotation[0][2] = zaxis.x; // First column, third row
+	rotation[1][2] = zaxis.y;
+	rotation[2][2] = zaxis.z;
+
+	// Return lookAt matrix as combination of translation and rotation matrix
+	return rotation * translation; // Remember to read from right to left (first translation then rotation)
 }
-
