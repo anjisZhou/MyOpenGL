@@ -1,1 +1,5 @@
-﻿
+﻿  main.cpp
+f:\myopengl\learnopengl\learnopengl_review\main.cpp(231): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+f:\myopengl\learnopengl\learnopengl_review\main.cpp(232): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+  LearnOpenGL_Review.vcxproj -> F:\MyOpenGL\LearnOpenGL\Debug\LearnOpenGL_Review.exe
+  LearnOpenGL_Review.vcxproj -> F:\MyOpenGL\LearnOpenGL\Debug\LearnOpenGL_Review.pdb (Partial PDB)

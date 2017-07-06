@@ -13,9 +13,11 @@ const char *vertexShaderSource = "#version 330 core\n"
 "layout(location = 1) in vec2 aTexCoord;\n"
 "out vec2 TexCoord;\n"
 "uniform mat4 model;\n"
+"uniform mat4 view;\n"
+"uniform mat4 projection;\n"
 "void main()\n"
 "{\n"
-"   gl_Position = model*vec4(aPos, 1.0);\n"
+"   gl_Position = projection*view*model*vec4(aPos, 1.0);\n"
 "TexCoord=aTexCoord;\n"
 "}\0";
 const char *fragmentShaderSource = "#version 330 core\n"
@@ -70,6 +72,19 @@ const float vertices[] = {
 	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
+
+const glm::vec3 cubePositions[] = {
+	glm::vec3(0.0f,  0.0f,  0.0f),
+	glm::vec3(1.0f,  0.0f, 0.0f),
+	glm::vec3(2.0f,  0.0f,  0.0f),
+	glm::vec3(3.0f,  0.0f,  0.0f),
+	glm::vec3(4.0f,  0.0f,  0.0f),
+	glm::vec3(-1.0f,   0.0f,  0.0f),
+	glm::vec3(-2.0f,  0.0f,  0.0f),
+	glm::vec3(-3.0f,   0.0f,  0.0f),
+	glm::vec3(-4.0f,   0.0f,  0.0f),
+	glm::vec3(0.0f,  1.0f, 0.0f)
+};
 int main()
 {
 	glfwInit();
@@ -77,7 +92,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
-	GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1000, 1000, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -92,7 +107,7 @@ int main()
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
-
+//=====================================================================================
 	unsigned int vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -190,10 +205,12 @@ int main()
 	glBindTexture(GL_TEXTURE_2D,0);
 	//=====================================================================================
 	glUseProgram(shaderProgram);
-	glm::mat4 model;
-	model = glm::rotate(model, glm::radians(55.0f), glm::vec3(1.0f, 1.0f, 0.0f));
-	int modelLoc = glGetUniformLocation(shaderProgram, "model");
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+	glm::mat4 projection;
+	projection = glm::perspective(glm::radians(45.0f),1.0f, 0.1f, 100.0f);
+	int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
 
 	glEnable(GL_DEPTH_TEST);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -208,11 +225,30 @@ int main()
 
 
 		glBindVertexArray(VAO);
-		for (size_t i = 0; i < 36; i+=6)
+
+
+		float radius = 8.0f;
+		float camX = sin(glfwGetTime()) * radius;
+		float camZ = cos(glfwGetTime()) * radius;
+		glm::mat4 view;
+		view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		int viewLoc = glGetUniformLocation(shaderProgram, "view");
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		for (size_t j = 0; j <10; j++)
 		{
-			glBindTexture(GL_TEXTURE_2D, texture[i/6]);
-			glDrawArrays(GL_TRIANGLES, i, 6);
+			glm::mat4 model;
+			model=glm::translate(model, cubePositions[j]);
+			model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 1.0f, 0.0f));
+			int modelLoc = glGetUniformLocation(shaderProgram, "model");
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+			for (size_t i = 0; i < 36; i += 6)
+			{
+				glBindTexture(GL_TEXTURE_2D, texture[i / 6]);
+				glDrawArrays(GL_TRIANGLES, i, 6);
+			}
 		}
+
 		
 		
 		glfwSwapBuffers(window);
